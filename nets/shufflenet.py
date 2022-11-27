@@ -5,6 +5,15 @@
 import torch
 import torch.nn as nn
 
+"""
+ShuffleNetV2 is a lightweight convolutional net, designed specifically for mobile devices.
+
+The reasoning behind shufflenet_v2, and basic guidelines for network speed, are described in the paper
+ShuffleNet V2: Practical Guidelines for Efficient CNN Architecture Design
+
+by Ma et al. 2017
+"""
+
 
 # can alternatively use nn.ChannelShuffle() but I will make the function myself
 # so I can annotate it.
@@ -190,6 +199,7 @@ class ShuffleNetV2(nn.module):
 
     def forward(self, x):
         return self._forward_impl(x)
+
 
 # original repo has functions for generating a pretrained shufflenet, x0.5, etc. but yeah.
 # I'm not planning on using a pretrained shufflenet, but we'll see.
