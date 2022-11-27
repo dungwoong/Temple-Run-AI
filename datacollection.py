@@ -60,6 +60,18 @@ class DataCollector:
         time.sleep(2)
         self.dims = self._find_screen()
 
+    def collect(self):
+        """
+        Collects a new piece of data, and attempts to enqueue it.
+        """
+        pass
+
+    def run(self):
+        # look at current state of the keyboard
+        # dequeue and save with label if queue is full.
+        # collect()
+        pass
+
     @staticmethod
     def _find_screen():
         tlp = pg.locateOnScreen('res/topleft.jpg', confidence=0.9)
