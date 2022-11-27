@@ -45,12 +45,12 @@ class LeNet(Module):
         self.maxpool1 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))  # shrinks image down by 2x width/height i think
 
         # second set of conv pooling
-        self.conv2 = Conv2d(in_channels=64, out_channels=256,
+        self.conv2 = Conv2d(in_channels=128, out_channels=256,
                             kernel_size=(5, 5))  # the conv layers shrink the image as well
         self.maxpool2 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
 
         # third set of conv pooling
-        self.conv3 = Conv2d(in_channels=128, out_channels=512,
+        self.conv3 = Conv2d(in_channels=256, out_channels=512,
                             kernel_size=(5, 5))  # the conv layers shrink the image as well
         self.maxpool3 = MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
 

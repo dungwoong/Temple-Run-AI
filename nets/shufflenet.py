@@ -113,7 +113,7 @@ class InvertedResidual(nn.Module):
         return out
 
 
-class ShuffleNetV2(nn.module):
+class ShuffleNetV2(nn.Module):
     def __init__(self, stages_repeats, stages_out_channels, num_classes=1000, inverted_residual=InvertedResidual):
         """
         Initializes a ShuffleNetV2 Model.
