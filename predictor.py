@@ -18,7 +18,12 @@ class Predictor:
         self.logsoftmax = torch.nn.LogSoftmax(dim=0).to(self.device)
         print('[Predictor] Waiting 2s to find phone screen: ')
         time.sleep(2)
-        self.dims = find_screen()
+
+        # get dims
+        dims = find_screen()
+        top = dims['t'] + dims['h'] // 4
+
+        self.dims = (dims['l'], top, dims['r'], dims['b'])
 
         print('[Predictor] creating predict method for the model')
         self.create_predict()
@@ -45,11 +50,12 @@ class Predictor:
 
     def take_screenshot(self):
         img = pg.screenshot()
+        img = img.crop(self.dims)
+        img = img.resize((238, 310)) # TODO hardcoded
         img = np.array(img)
         frame = torch.Tensor(img)
         # image is in BGR
-        cropped = frame[self.dims['t']:self.dims['b'], self.dims['l']: self.dims['r']]
-        cropped = torch.transpose(cropped, 2, 0)  # now the image is C x W x H.
+        cropped = torch.transpose(frame, 2, 0)  # now the image is C x W x H.
         cropped = torch.unsqueeze(cropped, 0)
         return cropped
 
@@ -71,6 +77,7 @@ class Predictor:
             screenshot_times.append(mid - start)
 
             pred = self.predict(frame)
+            print(frame.shape)
             print(pred)
             # print(time.time() - mid, 'to predict')
             end = time.time()
@@ -101,4 +108,4 @@ class Predictor:
 if __name__ == '__main__':
     m = ShuffleNetV2([4, 8, 4], [24, 116, 232, 464, 1024], num_classes=6)
     p = Predictor(m)
-    p.test_time(1000)
+    p.test_time(100)
