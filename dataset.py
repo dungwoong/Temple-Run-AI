@@ -4,11 +4,15 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.io import read_image
 from torchvision import transforms
 import torch
+from PIL import Image
 
 import matplotlib.pyplot as plt
 
 
-def rename_by_indices(base_folder='data'):
+def rename_by_indices(base_folder='data', graph=False):
+    total = 0
+    folders = []
+    numbers = []
     for root, subfolder, path in os.walk(base_folder):
         root = root.replace('\\', '/')
         if not subfolder:
@@ -22,6 +26,20 @@ def rename_by_indices(base_folder='data'):
                 new_path = root + '/' + folder + '{:06d}'.format(idx) + '.jpg'
                 os.rename(old_path, new_path)
                 idx += 1
+            if idx > 0:
+                print(root + '/' + folder)
+                print(idx)
+                folders.append(root + '/' + folder)
+                numbers.append(idx)
+                total += idx
+    print('total:', total)
+    if graph:
+        numbers, folders = zip(*sorted(zip(numbers, folders), key=lambda x: x[0]))
+        plt.figure(figsize=(16, 8))
+        plt.bar(folders, numbers)
+        plt.title('count of obs in folders')
+        plt.show()
+    return total
 
 
 def make_spreadsheet(out_path='imgs.csv', base_folder='data'):
@@ -69,10 +87,15 @@ class TempleRunImageDataset(Dataset):
                       'u': 5,
                       'w': 6}
         img_path = self.df.iloc[idx, 0]
-        img = read_image(img_path)  # C H W
-        transform = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
-        img = transform(img.float())
+        # img = read_image(img_path)  # C H W
+        img = Image.open(img_path)
+        preprocess = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        img = preprocess(img) # img.float() if img is tensor
         img = torch.transpose(img, 1, 2)  # C W H
         label = self.df.iloc[idx, 1]
 
@@ -80,14 +103,14 @@ class TempleRunImageDataset(Dataset):
 
 
 if __name__ == '__main__':
-    # rename_by_indices()
+    rename_by_indices(graph=True)
     # make_spreadsheet('imgs.csv')
 
-    img_dataset = TempleRunImageDataset('imgs.csv')
-    img_dataloader = DataLoader(img_dataset, batch_size=64, shuffle=True)
-    imgs, labels = next(iter(img_dataloader))
-    print(imgs.size())  # C W H
-    example = imgs[0].transpose(0, 2)  # H W C
-    plt.imshow(example)  # imshow is H W C
-    plt.title(labels[0])
-    plt.show()
+    # img_dataset = TempleRunImageDataset('imgs.csv')
+    # img_dataloader = DataLoader(img_dataset, batch_size=64, shuffle=True)
+    # imgs, labels = next(iter(img_dataloader))
+    # print(imgs.size())  # C W H
+    # example = imgs[0].transpose(0, 2)  # H W C
+    # plt.imshow(example)  # imshow is H W C
+    # plt.title(labels[0])
+    # plt.show()

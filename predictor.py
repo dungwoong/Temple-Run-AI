@@ -17,6 +17,7 @@ class Predictor:
         print('[Predictor] Alert: setting model to eval()')
         self.model.eval()
         self.logsoftmax = torch.nn.LogSoftmax(dim=1).to(self.device)
+        self.softmax = torch.nn.Softmax(dim=1).to(self.device)
         print('[Predictor] Waiting 2s to find phone screen: ')
         time.sleep(2)
 
@@ -29,18 +30,35 @@ class Predictor:
         print('[Predictor] creating predict method for the model')
         self.create_predict()
 
-    def predict(self, img):
+    def preprocess(self, img):
+        preprocess = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        img = preprocess(img)  # img.float() if img is tensor
+        img = torch.transpose(img, 1, 2)  # C W H
+        img = torch.unsqueeze(img, 0)
+        return img
+
+    def predict(self, img, probs=False):
         # assert img.shape[0] == 1, 'Must give singular observation.'
+        img = self.preprocess(img)
         with torch.no_grad():
             img = img.to(self.device)
-            transform = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                             std=[0.229, 0.224, 0.225])
-            img = transform(img.float())
             output = self.model(img)
-            output = self.logsoftmax(output)
+            # print(output.shape)
             # output = torch.unsqueeze(output, dim=0)
-            decision = torch.argmax(output, dim=1)
-            return decision.item()
+            if not probs:
+                output = self.logsoftmax(output)
+                decision = torch.argmax(output, dim=1)
+                return decision.item()
+            else:
+                output = self.softmax(output)
+                value, indices = torch.max(output, dim=1)
+                # output = self.logsoftmax(output)
+                return value.item(), indices.item()
 
     def create_predict(self):
         """
@@ -55,13 +73,13 @@ class Predictor:
     def take_screenshot(self):
         img = pg.screenshot()
         img = img.crop(self.dims)
-        img = img.resize((238, 310))  # TODO hardcoded
-        img = np.array(img)
-        frame = torch.Tensor(img)
-        # image is in BGR
-        cropped = torch.transpose(frame, 2, 0)  # now the image is C x W x H.
-        cropped = torch.unsqueeze(cropped, 0)
-        return cropped
+        img = img.resize((238, 412))  # TODO hardcoded
+        # img = np.array(img)
+        # frame = torch.Tensor(img)
+        # # image is in BGR
+        # cropped = torch.transpose(frame, 2, 0)  # now the image is C x W x H.
+        # cropped = torch.unsqueeze(cropped, 0)
+        return img
 
     def test_time(self, n=100, save_to_file=True,
                   indiv_file='misc_img/predictor_indiv.png', total_file='misc_img/predictor_total.png'):
@@ -70,6 +88,14 @@ class Predictor:
 
         Saves statistics for total time, and individual screenshotting vs predicting times at respective file paths.
         """
+        label_dict = {0: 'neutral',
+                      1: 'A key',
+                      2: 'D key',
+                      3: 'left',
+                      4: 'right',
+                      5: 'up',
+                      6: 'down'}
+        last_pred = None
         # take a screenshot
         screenshot_times = []
         pred_times = []
@@ -81,10 +107,11 @@ class Predictor:
             mid = time.time()
             screenshot_times.append(mid - start)
 
-            pred = self.predict(frame)
+            prob, pred = self.predict(frame, probs=True)
             # print(frame.shape)
-            if pred != 0:
-                print(pred)
+            if pred != last_pred and pred in [3, 4, 5, 6]:
+                last_pred = pred
+                print(label_dict[pred], '(', prob, '%)')
             # print(time.time() - mid, 'to predict')
             end = time.time()
             pred_times.append(end - mid)

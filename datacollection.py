@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pyautogui as pg
 import time
 import keyboard
+from dataset import rename_by_indices
 
 
 class CollectorError(Exception):
@@ -82,18 +83,75 @@ class KeyboardDetector:
         return state
 
 
+class TriggerDetector:
+    def __init__(self, up, down, left, right, a_key, d_key, na):
+        """
+        insert callables for when any key is pressed
+        """
+        self.u, self.d, self.l, self.r, self.a_key, self.d_key, self.na = up, down, left, right, a_key, d_key, na
+        self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
+
+    def get_game_state(self):
+        args = None
+        if keyboard.is_pressed('up') and not self.up_pressed:
+            self.up_pressed = True
+            args = self.up
+        elif not keyboard.is_pressed('up'):
+            self.up_pressed = False
+
+        if keyboard.is_pressed('down') and not self.down_pressed:
+            self.down_pressed = True
+            args = self.down
+        elif not keyboard.is_pressed('down'):
+            self.down_pressed = False
+
+        if keyboard.is_pressed('left') and not self.left_pressed:
+            self.left_pressed = True
+            args = self.left
+        elif not keyboard.is_pressed('left'):
+            self.left_pressed = False
+
+        if keyboard.is_pressed('right') and not self.right_pressed:
+            self.right_pressed = True
+            args = self.right
+        elif not keyboard.is_pressed('right'):
+            self.right_pressed = False
+
+        if keyboard.is_pressed('a'):
+            args = self.a_key
+        if keyboard.is_pressed('d'):
+            args = self.d_key
+
+        if args is None:
+            args = self.na
+        return args
+
+
 class DataCollector:
+    def __init__(self, last_id=0, detector=KeyboardDetector()):
+        # find the phone screen
+        print('[DataCollector.INIT] waiting to find phone screen...')
+        time.sleep(5)
+        dims = find_screen()
+
+        self.dims = (dims['l'], dims['t'], dims['r'], dims['b'])
+        self.detector = detector
+        self.id = last_id
+
     def screenshot(self):
         """
-        Collects a screenshot
+        Collects a screenshot, crops and returns the image.
         """
-        raise NotImplementedError
+        img = pg.screenshot()
+        img = img.crop(self.dims)
+        img = img.resize((238, 412))
+        return img
 
     def get_game_state(self):
         """
         gets game state: which keys are pressed down
         """
-        raise NotImplementedError
+        return self.detector.get_state()
 
     def run(self, root='data'):
         """
@@ -106,44 +164,28 @@ class DataCollector:
         raise NotImplementedError
 
 
-class RealTimeDataCollector(DataCollector):
+class PassiveDataCollector(DataCollector):
     """
     Takes screenshots of the game in regular intervals.
 
-    Regularly saves the screenshots, along with the accompanying label.
+    When no buttons are pressed, will take a screenshot after a certain amount of time.
     """
 
-    def __init__(self, last_id=0):
-        # find the phone screen
-        print('[DataCollector.INIT] waiting to find phone screen...')
-        time.sleep(5)
-        dims = find_screen()
-        top = dims['t'] + dims['h'] // 4
-
-        self.dims = (dims['l'], top, dims['r'], dims['b'])
-        self.detector = KeyboardDetector()
-        self.id = last_id
-
-    def screenshot(self):
-        """
-        Takes a screenshot and crops it and returns it
-        """
-        img = pg.screenshot()
-        img = img.crop(self.dims)
-        img = img.resize((238, 310))
-        return img
-
-    def get_game_state(self):
-        return self.detector.get_state()
+    def __init__(self, max_timer=20, last_id=0, detector=KeyboardDetector()):
+        super(PassiveDataCollector, self).__init__(last_id, detector)
+        self.timer = 0  # amount after nothing is clicked
+        self.max_timer = max_timer
 
     def run(self, root='data'):
         state = self.get_game_state()
-        if len(state) == 0:
+        if len(state) != 0:
+            self.timer = 0
+            return
+        elif self.timer < self.max_timer:  # state is '' but not time
+            self.timer += 1
+        else:  # timer >= max, and state is ''
+            self.timer = 0
             state_str = 'na/'
-        elif len(state) == 1:
-            state_str = state + '/'
-        else:
-            state_str = 'mult/'
         im = self.screenshot()
         idx = '{:06d}'.format(self.id)
         fname = f'{root}/{state_str}{idx}.jpg'
@@ -168,8 +210,69 @@ class RealTimeDataCollector(DataCollector):
         plt.savefig(out_path)
 
 
+class TriggerDataCollector(DataCollector):
+    """
+    Collects one point of data when we press any key.
+    """
+
+    def __init__(self, max_count, last_id=0, na_mult=1):
+        # detector = TriggerDetector('data/u', 'data/w', 'data/l', 'data/r', 'data/A', 'data/D', 'data/na')
+        detector = KeyboardDetector()
+        super(TriggerDataCollector, self).__init__(last_id, detector)
+        self.counter = 0
+        self.na_counter = 0
+        self.na_max = na_mult
+        self.max = max_count
+        self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
+
+    def save(self, folder):
+        idx = '{:06d}'.format(self.id)
+        fname = f'{folder}/{idx}.jpg'
+        self.img.save(fname)
+
+    def _set_pressed(self, key):
+        if key == 'u':
+            self.up_pressed = True
+        elif key == 'w':
+            self.down_pressed = True
+        elif key == 'l':
+            self.left_pressed = True
+        elif key == 'r':
+            self.right_pressed = True
+
+    def run(self, root='data'):
+        state = self.get_game_state()
+        im = self.screenshot()
+        self.counter += 1
+        if state == '':
+            self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
+            self.counter = self.max
+            return
+        if state in ['A', 'D'] and self.counter < self.max:
+            return
+        elif (state == 'l' and self.left_pressed) or (state == 'r' and self.right_pressed) or \
+                (state == 'u' and self.up_pressed) or (state == 'w' and self.down_pressed):
+            # not initial press
+            return
+
+        # now we assume if we got a/d/na counter is >= max, lruw was not previously pressed
+        if self.counter >= self.max:
+            self.counter = 0
+        if len(state) == 1:
+            self._set_pressed(state)
+            state_str = state + '/'
+        else:
+            state_str = 'mult/'
+        idx = '{:06d}'.format(self.id)
+        fname = f'{root}/{state_str}{idx}.jpg'
+        print(state_str)
+        im.save(fname)
+        self.id += 1
+
+
 if __name__ == '__main__':
-    dc = RealTimeDataCollector()
-    for i in range(2000):
+    total = rename_by_indices()
+    dc = TriggerDataCollector(max_count=50, last_id=total, na_mult=4)
+    # dc = PassiveDataCollector(max_timer=20, last_id=total)
+    while True:
         dc.run()
-    print(dc.id)

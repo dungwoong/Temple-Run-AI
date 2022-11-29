@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 from torch import nn
 import torch
+from load_pretrained import load_1_0, freeze
 
 from nets.shufflenet import ShuffleNetV2
 
@@ -14,7 +15,9 @@ dataloader = DataLoader(data, batch_size=batch_size, shuffle=True)
 train_steps = len(dataloader.dataset) // batch_size
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = ShuffleNetV2([4, 8, 4], [24, 116, 232, 464, 1024], num_classes=7).to(device)
+model = load_1_0()
+freeze(model, unfreeze=[model.fc, model.conv5, model.stage4])
+model.to(device)
 opt = Adam(model.parameters(), lr=1e-3)
 lossfn = nn.CrossEntropyLoss()
 print(device)
