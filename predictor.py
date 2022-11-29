@@ -1,4 +1,6 @@
 import time
+
+import keyboard
 import torch
 import pyautogui as pg
 import numpy as np
@@ -10,7 +12,8 @@ from nets.shufflenet import ShuffleNetV2
 
 
 class Predictor:
-    def __init__(self, model, gpu=True):
+    def __init__(self, model, pred_action=lambda x:x, gpu=True):
+        self.pred_action = pred_action
         self.device = 'cuda' if torch.cuda.is_available() and gpu else 'cpu'
         print('[Predictor] Device =', self.device)
         self.model = model.to(self.device)
@@ -23,9 +26,9 @@ class Predictor:
 
         # get dims
         dims = find_screen()
-        top = dims['t'] + dims['h'] // 4
+        # top = dims['t'] + dims['h'] // 4
 
-        self.dims = (dims['l'], top, dims['r'], dims['b'])
+        self.dims = (dims['l'], dims['t'], dims['r'], dims['b'])
 
         print('[Predictor] creating predict method for the model')
         self.create_predict()
@@ -81,6 +84,11 @@ class Predictor:
         # cropped = torch.unsqueeze(cropped, 0)
         return img
 
+    def run(self):
+        frame = self.take_screenshot()
+        prob, pred = self.predict(frame, probs=True)
+        return self.pred_action((prob, pred))
+
     def test_time(self, n=100, save_to_file=True,
                   indiv_file='misc_img/predictor_indiv.png', total_file='misc_img/predictor_total.png'):
         """
@@ -109,7 +117,7 @@ class Predictor:
 
             prob, pred = self.predict(frame, probs=True)
             # print(frame.shape)
-            if pred != last_pred and pred in [3, 4, 5, 6]:
+            if pred != last_pred:  # and pred in [3, 4, 5, 6]:
                 last_pred = pred
                 print(label_dict[pred], '(', prob, '%)')
             # print(time.time() - mid, 'to predict')
@@ -139,8 +147,69 @@ class Predictor:
         # do a movement based on the results of the model.
 
 
+class PerformGameAction:
+    def __init__(self):
+        self.last_pred = -1
+        self.label_fun_dict = {0: self.neutral,
+                               1: self.a_key,
+                               2: self.d_key,
+                               3: self.left,
+                               4: self.right,
+                               5: self.up,
+                               6: self.down}
+        self.label_dict = {0: 'neutral',
+                           1: 'A key',
+                           2: 'D key',
+                           3: 'left',
+                           4: 'right',
+                           5: 'up',
+                           6: 'down'}
+
+    def up(self):
+        pg.press('up')
+
+    def down(self):
+        pg.press('down')
+
+    def right(self):
+        pg.press('right')
+
+    def left(self):
+        pg.press('left')
+
+    def a_key(self):
+        pg.keyDown('a')
+
+    def d_key(self):
+        pg.keyDown('d')
+
+    def neutral(self):
+        pg.keyUp('a')
+        pg.keyUp('d')
+
+    def __call__(self, out, log=True):
+        prob, pred = out
+        func = self.label_fun_dict[pred]
+        func()
+        if log:
+            if self.last_pred != pred:
+                self.last_pred = pred
+                print(self.label_dict[pred], "(", prob, "% )")
+
+
 if __name__ == '__main__':
     m = ShuffleNetV2([4, 8, 4], [24, 116, 232, 464, 1024], num_classes=7)
-    m.load_state_dict(torch.load('garbage.pth'))
-    p = Predictor(m)
-    p.test_time(2000, save_to_file=False)
+    m.load_state_dict(torch.load('nets/pretrained/01.pth'))
+    p = Predictor(m, pred_action=PerformGameAction())
+    # p.test_time(2000, save_to_file=False)a
+    print('running in 3')
+    time.sleep(1)
+    print('2')
+    time.sleep(1)
+    print('1')
+    time.sleep(1)
+    for i in range(0, 2000):
+        if keyboard.is_pressed('alt') or keyboard.is_pressed('space'):
+            print('ending...')
+            break
+        p.run()

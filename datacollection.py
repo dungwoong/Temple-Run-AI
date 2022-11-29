@@ -59,6 +59,11 @@ class CircularQueue:
     def get_end(self):
         return (self.start + self.size) % self.n
 
+    def clear(self):
+        self.items = [None] * self.n
+        self.size = 0
+        self.start = 0
+
 
 class KeyboardDetector:
     """
@@ -171,26 +176,36 @@ class PassiveDataCollector(DataCollector):
     When no buttons are pressed, will take a screenshot after a certain amount of time.
     """
 
-    def __init__(self, max_timer=20, last_id=0, detector=KeyboardDetector()):
+    def __init__(self, sleep_time=0.1, queue_size=8, last_id=0, detector=KeyboardDetector()):
         super(PassiveDataCollector, self).__init__(last_id, detector)
-        self.timer = 0  # amount after nothing is clicked
-        self.max_timer = max_timer
+        self.q = CircularQueue(queue_size)  # take screenshot every 0.1, we save 1.0s of data
+        self.sleep_time = sleep_time
+        self.last_time = -1
 
     def run(self, root='data'):
         state = self.get_game_state()
-        if len(state) != 0:
-            self.timer = 0
-            return
-        elif self.timer < self.max_timer:  # state is '' but not time
-            self.timer += 1
-        else:  # timer >= max, and state is ''
-            self.timer = 0
-            state_str = 'na/'
-        im = self.screenshot()
-        idx = '{:06d}'.format(self.id)
-        fname = f'{root}/{state_str}{idx}.jpg'
-        im.save(fname)
-        self.id += 1
+
+        if len(state) == 0 and time.time() - self.last_time >= self.sleep_time * 10:
+            # nothing is happening, start enqueuing
+            im = self.screenshot()
+            self.q.enqueue(im)
+            self.last_time = time.time()
+
+        elif len(state) != 0:
+            print('clearing...')
+            self.q.clear()
+            time.sleep(3 * self.sleep_time)
+            self.last_time = time.time()
+
+        if self.q.is_full():
+            img = self.q.dequeue()
+            self.q.clear()
+            # save image
+            idx = '{:06d}'.format(self.id)
+            fname = f'{root}/na/{idx}.jpg'
+            print(fname)
+            img.save(fname)
+            self.id += 1
 
     def test_time(self, n=100, out_path='misc_img/datacollection_time.png'):
         times = []
@@ -272,7 +287,7 @@ class TriggerDataCollector(DataCollector):
 
 if __name__ == '__main__':
     total = rename_by_indices()
-    dc = TriggerDataCollector(max_count=50, last_id=total, na_mult=4)
-    # dc = PassiveDataCollector(max_timer=20, last_id=total)
+    # dc = TriggerDataCollector(max_count=50, last_id=total, na_mult=4)
+    dc = PassiveDataCollector(queue_size=1, last_id=total)
     while True:
         dc.run()
