@@ -51,7 +51,7 @@ class Predictor:
     def take_screenshot(self):
         img = pg.screenshot()
         img = img.crop(self.dims)
-        img = img.resize((238, 310)) # TODO hardcoded
+        img = img.resize((238, 310))  # TODO hardcoded
         img = np.array(img)
         frame = torch.Tensor(img)
         # image is in BGR
@@ -86,7 +86,7 @@ class Predictor:
         f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
         ax1.hist(total_times)
         ax1.set_xlabel('Total Time(s)')
-        plt.suptitle(f'Total Time to run, n={len(total_times)}, avg={sum(total_times)/len(total_times)}')
+        plt.suptitle(f'Total Time to run, n={len(total_times)}, avg={sum(total_times) / len(total_times)}')
         ax2.boxplot(total_times)
         ax2.set_xlabel('Total Time(s)')
         plt.savefig(total_file)
@@ -94,10 +94,10 @@ class Predictor:
         # plot prediction and screenshotting times.
         f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
         ax1.boxplot(screenshot_times)
-        ax1.set_title(f'Screenshot times, avg={sum(screenshot_times)/len(screenshot_times)}')
+        ax1.set_title(f'Screenshot times, avg={sum(screenshot_times) / len(screenshot_times)}')
         ax1.set_xlabel('Time(s)')
         ax2.boxplot(pred_times)
-        ax2.set_title(f'Pred times, avg={sum(pred_times)/len(pred_times)}')
+        ax2.set_title(f'Pred times, avg={sum(pred_times) / len(pred_times)}')
         ax2.set_xlabel('Time(s)')
         plt.savefig(indiv_file)
         # run the model on the screenshot
