@@ -14,9 +14,16 @@ def load_image():
     return trans(img)
 
 
-def test_net(mod, n=10):
+def test_net(mod, n=10, gpu=False):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device != 'cuda' and gpu:
+        raise ValueError('CUDA=True, but no cuda was found.')
+    if gpu:
+        mod = mod.to(device)
     im = load_image()
     im = torch.unsqueeze(im, 0)  # B C H W but that's whatever
+    if gpu:
+        im = im.to(device)
 
     avg = []
     for i in range(n):

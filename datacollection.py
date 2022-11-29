@@ -6,6 +6,19 @@ class CollectorError(Exception):
     pass
 
 
+def find_screen():
+    tlp = pg.locateOnScreen('res/topleft.jpg', confidence=0.9)
+    if tlp is None:
+        tlp = pg.locateOnScreen('res/topleft2.jpg', confidence=0.9)
+    brp = pg.locateOnScreen('res/botright.jpg', confidence=0.9)
+    if tlp is None or brp is None:
+        raise CollectorError('Could not find phone screen.')
+    left, top = (tlp.left, tlp.top)
+    right, bot = (brp.left + brp.width, brp.top + brp.height)
+    print(f"[FIND_SCREEN] {right - left}W x {bot - top}H")
+    return {'l': left, 'r': right, 't': top, 'b': bot}
+
+
 class CircularQueue:
     """
     A FIFO Queue with a set number of items.
@@ -58,7 +71,7 @@ class DataCollector:
         # find the phone screen
         print('[DataCollector.INIT] waiting to find phone screen...')
         time.sleep(2)
-        self.dims = self._find_screen()
+        self.dims = find_screen()
 
     def collect(self):
         """
@@ -71,19 +84,6 @@ class DataCollector:
         # dequeue and save with label if queue is full.
         # collect()
         pass
-
-    @staticmethod
-    def _find_screen():
-        tlp = pg.locateOnScreen('res/topleft.jpg', confidence=0.9)
-        if tlp is None:
-            tlp = pg.locateOnScreen('res/topleft2.jpg', confidence=0.9)
-        brp = pg.locateOnScreen('res/botright.jpg', confidence=0.9)
-        if tlp is None or brp is None:
-            raise CollectorError('Could not find phone screen.')
-        left, top = (tlp.left, tlp.top)
-        right, bot = (brp.left + brp.width, brp.top + brp.height)
-        print(f"[FIND_SCREEN] {right - left}W x {bot - top}H")
-        return {'l': left, 'r': right, 't': top, 'b': bot}
 
 
 if __name__ == '__main__':

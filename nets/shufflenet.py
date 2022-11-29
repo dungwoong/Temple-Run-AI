@@ -195,6 +195,7 @@ class ShuffleNetV2(nn.Module):
         x = self.stage4(x)
         x = self.conv5(x)
         x = x.mean([2, 3])  # N C W H so this performs avg pooling
+        x = self.fc(x)
         return x
 
     def forward(self, x):
