@@ -3,6 +3,7 @@ import torch
 import pyautogui as pg
 import numpy as np
 import matplotlib.pyplot as plt
+from torchvision import transforms
 
 from datacollection import find_screen
 from nets.shufflenet import ShuffleNetV2
@@ -32,6 +33,9 @@ class Predictor:
         # assert img.shape[0] == 1, 'Must give singular observation.'
         with torch.no_grad():
             img = img.to(self.device)
+            transform = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                             std=[0.229, 0.224, 0.225])
+            img = transform(img.float())
             output = self.model(img)
             output = self.logsoftmax(output)
             output = torch.unsqueeze(output, dim=0)
