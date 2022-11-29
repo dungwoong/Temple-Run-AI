@@ -45,5 +45,5 @@ for e in range(0, 5):
     print('avg train loss:', total_train_loss/train_steps)
     print('train accuracy:', train_correct/len(dataloader.dataset))
 
-    torch.save(model.state_dict, 'garbage.pth')
+    torch.save(model.state_dict(), 'garbage.pth')
 

@@ -16,7 +16,7 @@ class Predictor:
         self.model = model.to(self.device)
         print('[Predictor] Alert: setting model to eval()')
         self.model.eval()
-        self.logsoftmax = torch.nn.LogSoftmax(dim=0).to(self.device)
+        self.logsoftmax = torch.nn.LogSoftmax(dim=1).to(self.device)
         print('[Predictor] Waiting 2s to find phone screen: ')
         time.sleep(2)
 
@@ -38,8 +38,8 @@ class Predictor:
             img = transform(img.float())
             output = self.model(img)
             output = self.logsoftmax(output)
-            output = torch.unsqueeze(output, dim=0)
-            decision = torch.argmax(output)
+            # output = torch.unsqueeze(output, dim=0)
+            decision = torch.argmax(output, dim=1)
             return decision.item()
 
     def create_predict(self):
@@ -63,7 +63,8 @@ class Predictor:
         cropped = torch.unsqueeze(cropped, 0)
         return cropped
 
-    def test_time(self, n=100, indiv_file='misc_img/predictor_indiv.png', total_file='misc_img/predictor_total.png'):
+    def test_time(self, n=100, save_to_file=True,
+                  indiv_file='misc_img/predictor_indiv.png', total_file='misc_img/predictor_total.png'):
         """
         Testing method. Will make <n> predictions using the model, and record timing statistics.
 
@@ -81,35 +82,38 @@ class Predictor:
             screenshot_times.append(mid - start)
 
             pred = self.predict(frame)
-            print(frame.shape)
-            print(pred)
+            # print(frame.shape)
+            if pred != 0:
+                print(pred)
             # print(time.time() - mid, 'to predict')
             end = time.time()
             pred_times.append(end - mid)
             total_times.append(end - start)
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
-        ax1.hist(total_times)
-        ax1.set_xlabel('Total Time(s)')
-        plt.suptitle(f'Total Time to run, n={len(total_times)}, avg={sum(total_times) / len(total_times)}')
-        ax2.boxplot(total_times)
-        ax2.set_xlabel('Total Time(s)')
-        plt.savefig(total_file)
+        if save_to_file:
+            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+            ax1.hist(total_times)
+            ax1.set_xlabel('Total Time(s)')
+            plt.suptitle(f'Total Time to run, n={len(total_times)}, avg={sum(total_times) / len(total_times)}')
+            ax2.boxplot(total_times)
+            ax2.set_xlabel('Total Time(s)')
+            plt.savefig(total_file)
 
-        # plot prediction and screenshotting times.
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
-        ax1.boxplot(screenshot_times)
-        ax1.set_title(f'Screenshot times, avg={sum(screenshot_times) / len(screenshot_times)}')
-        ax1.set_xlabel('Time(s)')
-        ax2.boxplot(pred_times)
-        ax2.set_title(f'Pred times, avg={sum(pred_times) / len(pred_times)}')
-        ax2.set_xlabel('Time(s)')
-        plt.savefig(indiv_file)
+            # plot prediction and screenshotting times.
+            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+            ax1.boxplot(screenshot_times)
+            ax1.set_title(f'Screenshot times, avg={sum(screenshot_times) / len(screenshot_times)}')
+            ax1.set_xlabel('Time(s)')
+            ax2.boxplot(pred_times)
+            ax2.set_title(f'Pred times, avg={sum(pred_times) / len(pred_times)}')
+            ax2.set_xlabel('Time(s)')
+            plt.savefig(indiv_file)
         # run the model on the screenshot
         # model will predict log prob of each action
         # do a movement based on the results of the model.
 
 
 if __name__ == '__main__':
-    m = ShuffleNetV2([4, 8, 4], [24, 116, 232, 464, 1024], num_classes=6)
+    m = ShuffleNetV2([4, 8, 4], [24, 116, 232, 464, 1024], num_classes=7)
+    m.load_state_dict(torch.load('garbage.pth'))
     p = Predictor(m)
-    p.test_time(100)
+    p.test_time(2000, save_to_file=False)
