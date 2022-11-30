@@ -14,6 +14,17 @@ def load_1_0(new_num_classes=7, weights_file='../resources/shufflenetv2_x1-5666b
     return net
 
 
+def load_0_5(new_num_classes=7, weights_file='../resources/shufflenetv2_x0.5-f707e7126e.pth'):
+    """
+    Loads a pretrained shufflenet x0.5
+    """
+    net = ShuffleNetV2([4, 8, 4], [24, 48, 96, 192, 1024], num_classes=1000)
+    net.load_state_dict(torch.load(weights_file))
+    final_in = net.fc.in_features
+    net.fc = nn.Linear(final_in, new_num_classes)
+    return net
+
+
 def freeze(net: nn.Module, unfreeze=[]):
     """
     Freeze all parameters of net, except those in modules listed in <unfreeze>

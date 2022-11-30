@@ -81,11 +81,10 @@ def make_spreadsheet(out_path='imgs.csv', base_folder='data'):
     df.to_csv(out_path, index=False)
 
 
-def make_weights_for_balanced_classes(spreadsheet_path, param=0, label_col='label'):
+def make_weights_for_balanced_classes(df, param=0, label_col='label'):
     """
     Make weights for weighted random sampling, to balance classes.
     """
-    df = pd.read_csv(spreadsheet_path)
     label_dict = {'n': 0,
                   'A': 1,
                   'D': 2,
@@ -106,8 +105,9 @@ class TempleRunImageDataset(Dataset):
     Labels are 0-7, observations are images.
     """
 
-    def __init__(self, df_file):
-        self.df = pd.read_csv(df_file)
+    def __init__(self, df, randomaffine=[]):
+        self.df = df
+        self.randomaffine = randomaffine
 
     def __len__(self):
         return len(self.df.index)
@@ -123,12 +123,14 @@ class TempleRunImageDataset(Dataset):
         img_path = self.df.iloc[idx, 0]
         # img = read_image(img_path)  # C H W
         img = Image.open(img_path)
-        preprocess = transforms.Compose([
+        transforms_list = [
             transforms.Resize(256),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
+        ]
+
+        preprocess = transforms.Compose(self.randomaffine + transforms_list)
         img = preprocess(img)  # img.float() if img is tensor
         img = torch.transpose(img, 1, 2)  # C W H
         label = self.df.iloc[idx, 1]
@@ -137,10 +139,10 @@ class TempleRunImageDataset(Dataset):
 
 
 if __name__ == '__main__':
-    # rename_by_indices(graph=True)
+    rename_by_indices(graph=True)
     # make_spreadsheet('imgs.csv')
-    w = make_weights_for_balanced_classes('imgs.csv')
-    print(w)
+    # w = make_weights_for_balanced_classes('imgs.csv')
+    # print(w)
 
     # img_dataset = TempleRunImageDataset('imgs.csv')
     # img_dataloader = DataLoader(img_dataset, batch_size=64, shuffle=True)

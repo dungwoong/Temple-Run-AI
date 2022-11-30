@@ -241,6 +241,31 @@ class PassiveDataCollector(DataCollector):
         plt.savefig(out_path)
 
 
+class PDataCollector(DataCollector):
+    """
+    Takes screenshots of the game when I press w
+
+    When no buttons are pressed, will take a screenshots after a certain amount of time.
+    """
+
+    def __init__(self, hotkey='w', last_id=0, detector=KeyboardDetector()):
+        super(PDataCollector, self).__init__(last_id, detector)
+        self.is_pressed = False
+        self.hotkey = hotkey
+
+    def run(self, root='data'):
+        if keyboard.is_pressed(self.hotkey) and not self.is_pressed:
+            self.is_pressed = True
+            img = self.screenshot()
+            idx = '{:06d}'.format(self.id)
+            fname = f'{root}/na/{idx}.jpg'
+            print(fname)
+            img.save(fname)
+            self.id += 1
+        elif not keyboard.is_pressed(self.hotkey):
+            self.is_pressed = False
+
+
 class TriggerDataCollector(DataCollector):
     """
     Collects one point of data when we press any key.
@@ -274,7 +299,6 @@ class TriggerDataCollector(DataCollector):
 
     def run(self, root='data'):
         state = self.get_game_state()
-        im = self.screenshot()
         self.counter += 1
         if state == '':
             self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
@@ -295,6 +319,7 @@ class TriggerDataCollector(DataCollector):
             state_str = state + '/'
         else:
             state_str = 'mult/'
+        im = self.screenshot()
         idx = '{:06d}'.format(self.id)
         fname = f'{root}/{state_str}{idx}.jpg'
         print(state_str)
@@ -305,9 +330,10 @@ class TriggerDataCollector(DataCollector):
 if __name__ == '__main__':
     total = rename_by_indices()
     # dc = TriggerDataCollector(max_count=50, last_id=total, na_mult=4)
-    dc = PassiveDataCollector(queue_size=1, last_id=total)
+    # dc = PassiveDataCollector(queue_size=1, last_id=total)
+    dc = PDataCollector(last_id=total)
     print('collecting...')
     while True:
-        if keyboard.is_pressed('space'):
+        if keyboard.is_pressed('p'):
             break
         dc.run()

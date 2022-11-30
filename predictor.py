@@ -207,8 +207,9 @@ class PerformGameAction:
 
 
 if __name__ == '__main__':
-    m = ShuffleNetV2([4, 8, 4], [24, 116, 232, 464, 1024], num_classes=7)
-    m.load_state_dict(torch.load('garbage.pth'))
+    # m = ShuffleNetV2([4, 8, 4], [24, 116, 232, 464, 1024], num_classes=7)  # 1.0
+    m = ShuffleNetV2([4, 8, 4], [24, 48, 96, 192, 1024], num_classes=7)  # 0.5
+    m.load_state_dict(torch.load('nets/pretrained/04 unfreezemore.pth'))
     p = Predictor(m, pred_action=PerformGameAction())
     # p.test_time(2000, save_to_file=False)a
     print('running in 3')
