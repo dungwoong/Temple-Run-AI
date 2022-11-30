@@ -60,7 +60,9 @@ def make_spreadsheet(out_path='imgs.csv', base_folder='data'):
               f'{base_folder}/w': 'w',
               f'{base_folder}/u': 'u',
               f'{base_folder}/r': 'r',
-              f'{base_folder}/na': 'n'}
+              f'{base_folder}/na': 'n',
+              f'{base_folder}/aw': ['A', 'w'],
+              f'{base_folder}/dw': ['D', 'w']}
     dir_path = base_folder
     for root, subfolder, path in os.walk(dir_path):  # ok I understand this line is bad
         root = root.replace('\\', '/')
@@ -74,9 +76,14 @@ def make_spreadsheet(out_path='imgs.csv', base_folder='data'):
                 folder += '/'
             for f in path:
                 full_path = root + '/' + folder + f
-                df_dict['path'].append(full_path)
-                df_dict['label'].append(label)
-
+                if isinstance(label, str):
+                    df_dict['path'].append(full_path)
+                    df_dict['label'].append(label)
+                elif isinstance(label, list):
+                    # print('encountered multiple')
+                    for item in label:
+                        df_dict['path'].append(full_path)
+                        df_dict['label'].append(item)
     df = pd.DataFrame(df_dict)
     df.to_csv(out_path, index=False)
 
@@ -139,8 +146,8 @@ class TempleRunImageDataset(Dataset):
 
 
 if __name__ == '__main__':
-    rename_by_indices(graph=True)
-    # make_spreadsheet('imgs.csv')
+    # rename_by_indices(graph=True)
+    make_spreadsheet('imgs.csv')
     # w = make_weights_for_balanced_classes('imgs.csv')
     # print(w)
 

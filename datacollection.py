@@ -273,13 +273,13 @@ class TriggerDataCollector(DataCollector):
     I don't want to talk about the code... :(
     """
 
-    def __init__(self, max_count, last_id=0, na_mult=1):
+    def __init__(self, lean_interval, last_id=0, na_mult=1):
         detector = KeyboardDetector()
         super(TriggerDataCollector, self).__init__(last_id, detector)
-        self.counter = 0
+        self.last_lean = -1
         self.na_counter = 0
         self.na_max = na_mult
-        self.max = max_count
+        self.lean_interval = lean_interval
         self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
 
     def save(self, folder):
@@ -299,12 +299,11 @@ class TriggerDataCollector(DataCollector):
 
     def run(self, root='data'):
         state = self.get_game_state()
-        self.counter += 1
         if state == '':
             self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
-            self.counter = self.max
+            self.last_lean = -1
             return
-        if state in ['A', 'D'] and self.counter < self.max:
+        if state in ['A', 'D'] and time.time() - self.last_lean < self.lean_interval:
             return
         elif (state == 'l' and self.left_pressed) or (state == 'r' and self.right_pressed) or \
                 (state == 'u' and self.up_pressed) or (state == 'w' and self.down_pressed):
@@ -312,8 +311,9 @@ class TriggerDataCollector(DataCollector):
             return
 
         # now we assume if we got a/d/na counter is >= max, lruw was not previously pressed
-        if self.counter >= self.max:
-            self.counter = 0
+        if state in ['A', 'D']:
+            self.last_lean = time.time()
+
         if len(state) == 1:
             self._set_pressed(state)
             state_str = state + '/'
@@ -329,11 +329,12 @@ class TriggerDataCollector(DataCollector):
 
 if __name__ == '__main__':
     total = rename_by_indices()
-    # dc = TriggerDataCollector(max_count=50, last_id=total, na_mult=4)
+    dc = TriggerDataCollector(lean_interval=1, last_id=total, na_mult=4)
     # dc = PassiveDataCollector(queue_size=1, last_id=total)
-    dc = PDataCollector(last_id=total)
+    # dc = PDataCollector(last_id=total)
     print('collecting...')
     while True:
         if keyboard.is_pressed('p'):
+            print('ending...')
             break
         dc.run()
