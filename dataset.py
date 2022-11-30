@@ -10,6 +10,12 @@ import matplotlib.pyplot as plt
 
 
 def rename_by_indices(base_folder='data', graph=False):
+    """
+    Goes through all individual folders in <base_folder> reorganizes them starting from 000001
+
+    Assumes files have 6 digits, with leading zeroes.
+    Returns the total number of observations collected.
+    """
     total = 0
     folders = []
     numbers = []
@@ -43,6 +49,10 @@ def rename_by_indices(base_folder='data', graph=False):
 
 
 def make_spreadsheet(out_path='imgs.csv', base_folder='data'):
+    """
+    Goes through <base_folder> making a spreadsheet of image labels and paths.
+    """
+
     df_dict = {'path': [], 'label': []}
     labels = {f'{base_folder}/A': 'A',
               f'{base_folder}/D': 'D',
@@ -71,7 +81,31 @@ def make_spreadsheet(out_path='imgs.csv', base_folder='data'):
     df.to_csv(out_path, index=False)
 
 
+def make_weights_for_balanced_classes(spreadsheet_path, param=0, label_col='label'):
+    """
+    Make weights for weighted random sampling, to balance classes.
+    """
+    df = pd.read_csv(spreadsheet_path)
+    label_dict = {'n': 0,
+                  'A': 1,
+                  'D': 2,
+                  'l': 3,
+                  'r': 4,
+                  'u': 5,
+                  'w': 6}
+    df[label_col] = df[label_col].map(label_dict)
+    class_weights = len(df) / (param + df[label_col].value_counts().sort_index())
+    img_weights = df[label_col].map(dict(class_weights))
+    print(class_weights)
+    return img_weights
+
+
 class TempleRunImageDataset(Dataset):
+    """
+    Temple run image dataset.
+    Labels are 0-7, observations are images.
+    """
+
     def __init__(self, df_file):
         self.df = pd.read_csv(df_file)
 
@@ -95,7 +129,7 @@ class TempleRunImageDataset(Dataset):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
-        img = preprocess(img) # img.float() if img is tensor
+        img = preprocess(img)  # img.float() if img is tensor
         img = torch.transpose(img, 1, 2)  # C W H
         label = self.df.iloc[idx, 1]
 
@@ -103,8 +137,10 @@ class TempleRunImageDataset(Dataset):
 
 
 if __name__ == '__main__':
-    rename_by_indices(graph=True)
+    # rename_by_indices(graph=True)
     # make_spreadsheet('imgs.csv')
+    w = make_weights_for_balanced_classes('imgs.csv')
+    print(w)
 
     # img_dataset = TempleRunImageDataset('imgs.csv')
     # img_dataloader = DataLoader(img_dataset, batch_size=64, shuffle=True)

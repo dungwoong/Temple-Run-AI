@@ -1,6 +1,10 @@
+"""
+Doesn't even include a validation set, simple PoC training script.
+"""
+
 import torch.cuda
 
-from dataset import TempleRunImageDataset
+from dataset import TempleRunImageDataset, make_spreadsheet, make_weights_for_balanced_classes
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 from torch import nn
@@ -9,9 +13,18 @@ from load_pretrained import load_1_0, freeze
 
 from nets.shufflenet import ShuffleNetV2
 
-data = TempleRunImageDataset('imgs.csv')
+data_csv = 'imgs.csv'
+make_spreadsheet(data_csv)
+data = TempleRunImageDataset(data_csv)
 batch_size = 64
-dataloader = DataLoader(data, batch_size=batch_size, shuffle=True)
+
+# balance classes, make dataloader
+weights = make_weights_for_balanced_classes(data_csv, param=50)
+weights = torch.DoubleTensor(weights)
+sampler = torch.utils.data.WeightedRandomSampler(weights, len(weights))
+dataloader = DataLoader(data, batch_size=batch_size, sampler=sampler)  # add shuffle=True if no sampler
+
+# other stuff
 train_steps = len(dataloader.dataset) // batch_size
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'

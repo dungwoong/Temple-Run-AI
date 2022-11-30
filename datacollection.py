@@ -10,6 +10,9 @@ class CollectorError(Exception):
 
 
 def find_screen():
+    """
+    Finds the phone screen using landmarks on the bluestacks emulator. Returns dimensions and endpoints
+    """
     tlp = pg.locateOnScreen('res/topleft.jpg', confidence=0.9)
     if tlp is None:
         tlp = pg.locateOnScreen('res/topleft2.jpg', confidence=0.9)
@@ -25,6 +28,9 @@ def find_screen():
 class CircularQueue:
     """
     A FIFO Queue with a set number of items.
+
+    Originally made to store a buffer of images when recording gameplay.
+    In the end, it was not used for much.
     """
 
     def __init__(self, n):
@@ -67,10 +73,13 @@ class CircularQueue:
 
 class KeyboardDetector:
     """
-    collects real time data for now.
+    Collects keyboard data.
     """
 
     def get_state(self):
+        """
+        Returns the state of the keyboard, appending an pressed keys to a state string.
+        """
         # w = DOWN BY THE WAY
         state = ''
         if keyboard.is_pressed('up'):
@@ -88,52 +97,59 @@ class KeyboardDetector:
         return state
 
 
-class TriggerDetector:
-    def __init__(self, up, down, left, right, a_key, d_key, na):
-        """
-        insert callables for when any key is pressed
-        """
-        self.u, self.d, self.l, self.r, self.a_key, self.d_key, self.na = up, down, left, right, a_key, d_key, na
-        self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
-
-    def get_game_state(self):
-        args = None
-        if keyboard.is_pressed('up') and not self.up_pressed:
-            self.up_pressed = True
-            args = self.up
-        elif not keyboard.is_pressed('up'):
-            self.up_pressed = False
-
-        if keyboard.is_pressed('down') and not self.down_pressed:
-            self.down_pressed = True
-            args = self.down
-        elif not keyboard.is_pressed('down'):
-            self.down_pressed = False
-
-        if keyboard.is_pressed('left') and not self.left_pressed:
-            self.left_pressed = True
-            args = self.left
-        elif not keyboard.is_pressed('left'):
-            self.left_pressed = False
-
-        if keyboard.is_pressed('right') and not self.right_pressed:
-            self.right_pressed = True
-            args = self.right
-        elif not keyboard.is_pressed('right'):
-            self.right_pressed = False
-
-        if keyboard.is_pressed('a'):
-            args = self.a_key
-        if keyboard.is_pressed('d'):
-            args = self.d_key
-
-        if args is None:
-            args = self.na
-        return args
+# class TriggerDetector:
+#     def __init__(self, up, down, left, right, a_key, d_key, na):
+#         """
+#         insert callables for when any key is pressed
+#         """
+#         self.u, self.d, self.l, self.r, self.a_key, self.d_key, self.na = up, down, left, right, a_key, d_key, na
+#         self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
+#
+#     def get_game_state(self):
+#         args = None
+#         if keyboard.is_pressed('up') and not self.up_pressed:
+#             self.up_pressed = True
+#             args = self.up
+#         elif not keyboard.is_pressed('up'):
+#             self.up_pressed = False
+#
+#         if keyboard.is_pressed('down') and not self.down_pressed:
+#             self.down_pressed = True
+#             args = self.down
+#         elif not keyboard.is_pressed('down'):
+#             self.down_pressed = False
+#
+#         if keyboard.is_pressed('left') and not self.left_pressed:
+#             self.left_pressed = True
+#             args = self.left
+#         elif not keyboard.is_pressed('left'):
+#             self.left_pressed = False
+#
+#         if keyboard.is_pressed('right') and not self.right_pressed:
+#             self.right_pressed = True
+#             args = self.right
+#         elif not keyboard.is_pressed('right'):
+#             self.right_pressed = False
+#
+#         if keyboard.is_pressed('a'):
+#             args = self.a_key
+#         if keyboard.is_pressed('d'):
+#             args = self.d_key
+#
+#         if args is None:
+#             args = self.na
+#         return args
 
 
 class DataCollector:
+    """
+    Collects data by taking screenshots and saving them to the appropriate folder.
+    """
+
     def __init__(self, last_id=0, detector=KeyboardDetector()):
+        """
+        last_id is the last image id that we saved to a file.
+        """
         # find the phone screen
         print('[DataCollector.INIT] waiting to find phone screen...')
         time.sleep(5)
@@ -173,7 +189,7 @@ class PassiveDataCollector(DataCollector):
     """
     Takes screenshots of the game in regular intervals.
 
-    When no buttons are pressed, will take a screenshot after a certain amount of time.
+    When no buttons are pressed, will take a screenshots after a certain amount of time.
     """
 
     def __init__(self, sleep_time=0.1, queue_size=8, last_id=0, detector=KeyboardDetector()):
@@ -228,10 +244,11 @@ class PassiveDataCollector(DataCollector):
 class TriggerDataCollector(DataCollector):
     """
     Collects one point of data when we press any key.
+
+    I don't want to talk about the code... :(
     """
 
     def __init__(self, max_count, last_id=0, na_mult=1):
-        # detector = TriggerDetector('data/u', 'data/w', 'data/l', 'data/r', 'data/A', 'data/D', 'data/na')
         detector = KeyboardDetector()
         super(TriggerDataCollector, self).__init__(last_id, detector)
         self.counter = 0
@@ -289,5 +306,8 @@ if __name__ == '__main__':
     total = rename_by_indices()
     # dc = TriggerDataCollector(max_count=50, last_id=total, na_mult=4)
     dc = PassiveDataCollector(queue_size=1, last_id=total)
+    print('collecting...')
     while True:
+        if keyboard.is_pressed('space'):
+            break
         dc.run()

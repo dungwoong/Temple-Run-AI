@@ -15,6 +15,9 @@ def load_1_0(new_num_classes=7, weights_file='../resources/shufflenetv2_x1-5666b
 
 
 def freeze(net: nn.Module, unfreeze=[]):
+    """
+    Freeze all parameters of net, except those in modules listed in <unfreeze>
+    """
     for param in net.parameters():
         param.requires_grad = False
     for mod in unfreeze:

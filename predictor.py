@@ -12,21 +12,26 @@ from nets.shufflenet import ShuffleNetV2
 
 
 class Predictor:
-    def __init__(self, model, pred_action=lambda x:x, gpu=True):
+    def __init__(self, model, pred_action=lambda x: x, gpu=True):
         self.pred_action = pred_action
+
+        # set device
         self.device = 'cuda' if torch.cuda.is_available() and gpu else 'cpu'
         print('[Predictor] Device =', self.device)
+
+        # configure model
         self.model = model.to(self.device)
         print('[Predictor] Alert: setting model to eval()')
         self.model.eval()
+
+        # configure log / softmax layers
         self.logsoftmax = torch.nn.LogSoftmax(dim=1).to(self.device)
         self.softmax = torch.nn.Softmax(dim=1).to(self.device)
         print('[Predictor] Waiting 2s to find phone screen: ')
         time.sleep(2)
 
-        # get dims
+        # find screen
         dims = find_screen()
-        # top = dims['t'] + dims['h'] // 4
 
         self.dims = (dims['l'], dims['t'], dims['r'], dims['b'])
 
@@ -148,6 +153,10 @@ class Predictor:
 
 
 class PerformGameAction:
+    """
+    Will perform game action, and print to screen what the action was.
+    """
+
     def __init__(self):
         self.last_pred = -1
         self.label_fun_dict = {0: self.neutral,
@@ -199,7 +208,7 @@ class PerformGameAction:
 
 if __name__ == '__main__':
     m = ShuffleNetV2([4, 8, 4], [24, 116, 232, 464, 1024], num_classes=7)
-    m.load_state_dict(torch.load('nets/pretrained/01.pth'))
+    m.load_state_dict(torch.load('garbage.pth'))
     p = Predictor(m, pred_action=PerformGameAction())
     # p.test_time(2000, save_to_file=False)a
     print('running in 3')
