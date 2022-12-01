@@ -273,7 +273,7 @@ class TriggerDataCollector(DataCollector):
     I don't want to talk about the code... :(
     """
 
-    def __init__(self, lean_interval, last_id=0, na_mult=1):
+    def __init__(self, lean_interval, mute_key=None, last_id=0, na_mult=1):
         detector = KeyboardDetector()
         super(TriggerDataCollector, self).__init__(last_id, detector)
         self.last_lean = -1
@@ -281,6 +281,7 @@ class TriggerDataCollector(DataCollector):
         self.na_max = na_mult
         self.lean_interval = lean_interval
         self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
+        self.mute_key = mute_key
 
     def save(self, folder):
         idx = '{:06d}'.format(self.id)
@@ -298,6 +299,10 @@ class TriggerDataCollector(DataCollector):
             self.right_pressed = True
 
     def run(self, root='data'):
+        # only record if active keybind is being pressed
+        if self.mute_key is not None and keyboard.is_pressed(self.mute_key):
+            return
+
         state = self.get_game_state()
         if state == '':
             self.up_pressed, self.down_pressed, self.left_pressed, self.right_pressed = False, False, False, False
@@ -329,9 +334,9 @@ class TriggerDataCollector(DataCollector):
 
 if __name__ == '__main__':
     total = rename_by_indices()
-    dc = TriggerDataCollector(lean_interval=1, last_id=total, na_mult=4)
+    dc = TriggerDataCollector(lean_interval=1, mute_key='w', last_id=total, na_mult=4)
     # dc = PassiveDataCollector(queue_size=1, last_id=total)
-    # dc = PDataCollector(last_id=total)
+    # dc = PDataCollector(last_id=total, hotkey='w')
     print('collecting...')
     while True:
         if keyboard.is_pressed('p'):

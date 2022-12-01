@@ -157,7 +157,9 @@ class PerformGameAction:
     Will perform game action, and print to screen what the action was.
     """
 
-    def __init__(self):
+    def __init__(self, lean_cooldown=0.5):
+        self.lean_delay = 0.5
+        self.last_lean = -1
         self.last_pred = -1
         self.label_fun_dict = {0: self.neutral,
                                1: self.a_key,
@@ -187,30 +189,41 @@ class PerformGameAction:
         pg.press('left')
 
     def a_key(self):
-        pg.keyDown('a')
+        t = time.time()
+        if t - self.last_lean >= self.lean_delay:
+            self.last_lean = t
+            pg.keyDown('a')
+        else:
+            return False
 
     def d_key(self):
-        pg.keyDown('d')
+        t = time.time()
+        if t - self.last_lean >= self.lean_delay:
+            self.last_lean = t
+            pg.keyDown('d')
+        else:
+            return False
 
     def neutral(self):
+        self.last_lean = -1
         pg.keyUp('a')
         pg.keyUp('d')
 
     def __call__(self, out, log=True):
         prob, pred = out
         func = self.label_fun_dict[pred]
-        func()
-        if log:
+        r = func()
+        if log and r is None:
             if self.last_pred != pred:
                 self.last_pred = pred
-                print(self.label_dict[pred], "(", prob, "% )")
+                print(self.label_dict[pred], "(", round(prob*100, 2), "% )")
 
 
 if __name__ == '__main__':
     # m = ShuffleNetV2([4, 8, 4], [24, 116, 232, 464, 1024], num_classes=7)  # 1.0
     m = ShuffleNetV2([4, 8, 4], [24, 48, 96, 192, 1024], num_classes=7)  # 0.5
-    net_path = 'nets/pretrained/04 unfreezemore.pth'
-    m.load_state_dict(torch.load('nets/pretrained/03.pth'))
+    net_path = 'nets/pretrained/03.pth'
+    m.load_state_dict(torch.load('nets/pretrained/04.pth'))
     p = Predictor(m, pred_action=PerformGameAction())
     # p.test_time(2000, save_to_file=False)a
     print('running in 3')
@@ -219,7 +232,7 @@ if __name__ == '__main__':
     time.sleep(1)
     print('1')
     time.sleep(1)
-    for i in range(0, 2000):
+    while True:
         if keyboard.is_pressed('alt') or keyboard.is_pressed('space'):
             print('ending...')
             break
