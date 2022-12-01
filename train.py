@@ -25,7 +25,9 @@ NUM_EPOCHS = 20
 WEIGHT_DECAY = 3e-5
 RANDOMEAFFINE = True
 UNFREEZE_MORE = True
-AUTO_EPOCH = False
+AUTO_EPOCH = True
+REDUCE_AT_EPOCH = 100
+
 # changed ADAM LR
 # added dropout, but removed it
 # tried balancing classes, didn't seem to help much as dataset is so small
@@ -95,10 +97,13 @@ metrics = {'train_loss': [], 'train_acc': [], 'val_loss': [], 'val_acc': []}
 
 print('training the network')
 for e in range(0, NUM_EPOCHS):
+    if e == REDUCE_AT_EPOCH:
+        opt = Adam(model.parameters(), lr=5e-5, weight_decay=5e-6)
+
     if UNFREEZE_MORE and e == 14:
         print('[UNFREEZING STAGE 3]')
         freeze(model, unfreeze=[model.fc, model.conv5, model.stage4, model.stage3])
-        opt = Adam(model.parameters(), lr=5e-5, weight_decay=5e-6)
+        # opt = Adam(model.parameters(), lr=5e-5, weight_decay=5e-6)
     print('Epoch', e + 1)
     model.train()
 

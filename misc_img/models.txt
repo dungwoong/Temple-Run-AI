@@ -1,4 +1,4 @@
 model1: shufflenet v2 x1. No validation data.
 model2: more data. Lax data collection procedures.
 model3: 0.5, randomaffine, l2 reg, unfreeze stage3 layer with reduced LR, more data with better collection procedures.
-model4: more data to represent classes.
+model4: more data to represent classes. Added some more middle-game data as well.

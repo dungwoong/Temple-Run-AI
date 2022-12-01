@@ -334,9 +334,9 @@ class TriggerDataCollector(DataCollector):
 
 if __name__ == '__main__':
     total = rename_by_indices()
-    dc = TriggerDataCollector(lean_interval=1, mute_key='w', last_id=total, na_mult=4)
+    # dc = TriggerDataCollector(lean_interval=1, mute_key='w', last_id=total, na_mult=4)
     # dc = PassiveDataCollector(queue_size=1, last_id=total)
-    # dc = PDataCollector(last_id=total, hotkey='w')
+    dc = PDataCollector(last_id=total, hotkey='w')
     print('collecting...')
     while True:
         if keyboard.is_pressed('p'):
