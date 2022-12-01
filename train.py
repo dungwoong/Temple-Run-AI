@@ -15,18 +15,18 @@ from load_pretrained import load_1_0, load_0_5, freeze
 
 from nets.shufflenet import ShuffleNetV2
 
-MODEL = 0.5
+MODEL = 1
 TRAIN_VAL_SPLIT = 0.3
 INITIAL_LR = 3e-4
 BATCH_SIZE = 64
 BALANCE_CLASSES = False
 BALANCE_CLASSES_PARAM = 75
-NUM_EPOCHS = 20
+NUM_EPOCHS = 15
 WEIGHT_DECAY = 3e-5
 RANDOMEAFFINE = True
-UNFREEZE_MORE = True
+UNFREEZE_MORE = False
 AUTO_EPOCH = True
-REDUCE_AT_EPOCH = 100
+REDUCE_AT_EPOCH = 10
 
 # changed ADAM LR
 # added dropout, but removed it

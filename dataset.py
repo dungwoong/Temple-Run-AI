@@ -146,8 +146,8 @@ class TempleRunImageDataset(Dataset):
 
 
 if __name__ == '__main__':
-    # rename_by_indices(graph=True)
-    make_spreadsheet('imgs.csv')
+    rename_by_indices(graph=True)
+    # make_spreadsheet('imgs.csv')
     # w = make_weights_for_balanced_classes('imgs.csv')
     # print(w)
 

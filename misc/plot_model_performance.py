@@ -8,32 +8,30 @@ def plot_model_performance(xlsx_loc='../misc_img/model scores.xlsx'):
     df = pd.read_excel(xlsx_loc)
     n = len(df)
     melted = pd.melt(df)
-    fig = plt.figure(figsize=(16, 6))
+    fig = plt.figure(figsize=(16, 16))
     # runs and model
-    fig.add_subplot(1, 4, 1)
+    fig.add_subplot(2, 2, 1)
     sns.boxplot(x=melted['variable'], y=melted['value'])
     plt.xlabel('Model')
     plt.ylabel('Distance travelled in-game(m)')
     plt.title(f'Distance travelled in different runs(n={n})', fontsize=10)
 
-    fig.add_subplot(1, 4, 2)
+    fig.add_subplot(2, 2, 2)
     sns.scatterplot(x=melted['variable'], y=melted['value'])
     plt.xlabel('Model')
-    plt.ylabel('Distance travelled in-game(m)')
     plt.title(f'Distance travelled in different runs(n={n})', fontsize=10)
 
     # logruns and model
     melted['value'] = np.log(melted['value'])
-    fig.add_subplot(1, 4, 3)
+    fig.add_subplot(2, 2, 3)
     sns.boxplot(x=melted['variable'], y=melted['value'])
     plt.xlabel('Model')
     plt.ylabel('ln of distance travelled in-game')
     plt.title(f'ln Distance travelled in different runs(n={n})', fontsize=10)
 
-    fig.add_subplot(1, 4, 4)
+    fig.add_subplot(2, 2, 4)
     sns.scatterplot(x=melted['variable'], y=melted['value'])
     plt.xlabel('Model')
-    plt.ylabel('ln of distance travelled in-game')
     plt.title(f'ln Distance travelled in different runs(n={n})', fontsize=10)
 
     plt.show()
